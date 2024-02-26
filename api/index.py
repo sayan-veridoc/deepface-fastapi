@@ -3,23 +3,41 @@ import tempfile
 import cv2
 from deepface import DeepFace
 from urllib.parse import quote
-from fastapi import FastAPI, File, HTTPException, Response, UploadFile
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile, status
 from fastapi.responses import JSONResponse
 import numpy as np
+from pydantic import BaseModel
 
 
 app = FastAPI(title="Emotion Api")
 
 
-@app.get("/api/health")
-async def hello_world():
+class HealthCheck(BaseModel):
+    """Response model to validate and return when performing a health check."""
 
-    return JSONResponse(
-        content={
-            "message": "Emotion Api is running !!!",
-        },
-        status_code=200,
-    )
+    status: str = "OK"
+
+
+@app.get(
+    "api/health",
+    tags=["healthcheck"],
+    summary="Perform a Health Check",
+    response_description="Return HTTP Status Code 200 (OK)",
+    status_code=status.HTTP_200_OK,
+    response_model=HealthCheck,
+)
+def get_health() -> HealthCheck:
+    """
+    ## Perform a Health Check
+    Endpoint to perform a healthcheck on. This endpoint can primarily be used Docker
+    to ensure a robust container orchestration and management is in place. Other
+    services which rely on proper functioning of the API service will not deploy if this
+    endpoint returns any other HTTP status code except 200 (OK).
+    Returns:
+        HealthCheck: Returns a JSON response with the health status
+    """
+    return HealthCheck(status="OK")
+
 
 
 ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"]
@@ -44,9 +62,9 @@ async def emotion(file: UploadFile = File(...)):
         return JSONResponse(
             content={
                 "message": "Face Detection successful !",
-                "data": objs,
+                "data": objs,                
             },
-            status_code=200,
+            status_code=status.HTTP_200_OK,
         )
 
     except Exception as e:
