@@ -1,8 +1,11 @@
+import base64
 import tempfile
-import cv2 
-from deepface import DeepFace 
+import cv2
+from deepface import DeepFace
 from urllib.parse import quote
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile
+from fastapi.responses import JSONResponse
+import numpy as np
 
 
 app = FastAPI(title="Emotion Api")
@@ -10,32 +13,44 @@ app = FastAPI(title="Emotion Api")
 
 @app.get("/api/health")
 async def hello_world():
-    return {"status": "success", "message": "Integrate FastAPI Framework with Next.js"}
+
+    return JSONResponse(
+        content={
+            "message": "Emotion Api is running !!!",
+        },
+        status_code=200,
+    )
+
 
 ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"]
+
 
 @app.post("/api/emotion")
 async def emotion(file: UploadFile = File(...)):
     try:
-            if file.content_type not in ALLOWED_FILE_TYPES:
-                raise HTTPException(status_code=400, detail="Only JPEG and PNG images are allowed")
+        if file.content_type not in ALLOWED_FILE_TYPES:
+            raise HTTPException(
+                status_code=400, detail="Only JPEG and PNG images are allowed"
+            )
 
-            # Read the image file
-            img_temp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
-            img_temp.write(await file.read())
-            img_temp.close()
+        img_bytes = await file.read()
 
-            # Load the image using OpenCV
-            img = cv2.imread(img_temp.name)
+        img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), -1)
+        # print(img)
 
-            # Analyze emotions using DeepFace
-            result = DeepFace.analyze(img, actions=['emotion'])
-
-            # Remove temporary file
-            img_temp.unlink()
-
-            print(result)
+        objs = DeepFace.analyze(
+            img, actions=["age", "emotion"], enforce_detection=False
+        )
+        return JSONResponse(
+            content={
+                "message": "Face Detection successful !",
+                "data": objs,
+            },
+            status_code=200,
+        )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail="An error occurred while processing the image")
-        
+        print(e)
+        raise HTTPException(
+            status_code=500, detail="An error occurred while processing the image"
+        )
