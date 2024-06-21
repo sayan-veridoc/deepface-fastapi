@@ -1,9 +1,6 @@
-import base64
-import tempfile
 import cv2
 from deepface import DeepFace
-from urllib.parse import quote
-from fastapi import FastAPI, File, HTTPException, Response, UploadFile, status
+from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 import numpy as np
 from pydantic import BaseModel
@@ -19,7 +16,7 @@ class HealthCheck(BaseModel):
 
 
 @app.get(
-    "api/health",
+    "health",
     tags=["healthcheck"],
     summary="Perform a Health Check",
     response_description="Return HTTP Status Code 200 (OK)",
@@ -37,7 +34,6 @@ def get_health() -> HealthCheck:
         HealthCheck: Returns a JSON response with the health status
     """
     return HealthCheck(status="OK")
-
 
 
 ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"]
@@ -62,7 +58,7 @@ async def emotion(file: UploadFile = File(...)):
         return JSONResponse(
             content={
                 "message": "Face Detection successful !",
-                "data": objs,                
+                "data": objs,
             },
             status_code=status.HTTP_200_OK,
         )
